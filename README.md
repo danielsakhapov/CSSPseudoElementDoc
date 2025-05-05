@@ -2,6 +2,18 @@
 
 **Abstract:** This document provides a number of questions for discussion on the design considerations for the CSSPseudoElement IDL interface, as specified in the CSS Pseudo Elements Module Level 4. It addresses concerns regarding object lifetime, support for various pseudo element types (tree-abiding, non-tree-abiding, parameterized, plural), existence checks, event handling, web compatibility.
 
+## Table of Contents
+- [1. Introduction.](#1-introduction)
+- [2. Object Lifetime and Nature: Proxy vs. Direct Representation.](#2-object-lifetime-and-nature-proxy-vs-direct-representation)
+  - [2.1. Existence Confusion.](#21-existence-confusion)
+  - [2.2. Elements without pseudos.](#22-elements-without-pseudos)
+- [3. Handling pseudo element variations.](#3-handling-pseudo-element-variations)
+  - [3.1. Non-tree-abiding pseudo elements.](#31-non-tree-abiding-pseudo-elements)
+  - [3.2 Parameterized pseudo elements.](#32-parameterized-pseudo-elements)
+  - [3.3 Plurality: multiple pseudo elements of the same "kind".](#33-plurality-multiple-pseudo-elements-of-the-same-kind)
+- [4. Event handling.](#4-event-handling)
+  - [4.1. addEventListener on a Proxy/Handle.](#41-addeventlistener-on-a-proxyhandle)
+
 ## 1. Introduction.
 The CSSPseudoElement IDL interface aims to provide web developers with a mechanism to interact with pseudo elements (e.g., `::before`, `::scroll-marker`, `::selection`) via JavaScript. This can be used to e.g. allow for querying their computed styles, using them in animations, event handling. The primary entry point is `Element.pseudo(type)`.
 
