@@ -42,6 +42,8 @@ Model A is the currently specified one, and it likely won’t be changed, as it 
 But, nevertheless, it has a bunch of open questions, this explainer would like to address.
 
 ### 2.1. Existence confusion.
+[CSSWG issue](https://github.com/w3c/csswg-drafts/issues/12158)
+
 Developers might need a clear way to distinguish between having an object and the pseudo element actually being "live" or rendered?
 
 **Possible Solutions:**
@@ -64,6 +66,8 @@ Go with `exists`, as it gives more control for each pseudo element while unifyin
 Otherwise: Relying on `getComputedStyle()` initially seems pragmatic, given the limited list of pseudos supported currently. If specific use cases demonstrate its inadequacy, a dedicated property/method could be considered. For highlight pseudos, "existence" might mean "has associated ranges/segments."
 
 ### 2.2. Elements without pseudos.
+[CSSWG issue](https://github.com/w3c/csswg-drafts/issues/12159)
+
 What should elements that can’t have pseudos (e.g. `<input>`) return from `pseudo()` function? `null` or `CSSPseudoElement` object with `parent` and `element` as `null`?
 
 * Return `null`
@@ -90,12 +94,16 @@ Return a `CSSPseudoElement` Object. This approach is generally favored because i
 ## 3. Handling pseudo element variations.
 
 ### 3.1. Non-tree-abiding pseudo elements.
+[CSSWG issue](https://github.com/w3c/csswg-drafts/issues/12160)
+
 Should we add support for non-tree-abiding pseudo elements? E.g. for a hypothetical `getBoundingClientRects()` for `::selection`? Should `CSSPseudoElement` be enriched with new methods or should new specific interfaces be added?
 
 **Recommendation:**
 Based on some discussions in web animations, non-tree-abiding pseudo elements should likely have a separate interface that is not inherited from `EventTarget`, as it’s not possible sometimes to fit it into e.g. a bubbling model of events.
 
 ### 3.2 Parameterized pseudo elements.
+[CSSWG issue](https://github.com/w3c/csswg-drafts/issues/12161)
+
 How to retrieve pseudo argument(s) for e.g. `::part(foo)`, `::view-transition-group(name)`, `::slotted(selector)`? Should it just be a part of `type` value or a new attribute e.g. `argument` should be added?
 
 * Include parameter within the `type` attribute
@@ -121,6 +129,8 @@ How to retrieve pseudo argument(s) for e.g. `::part(foo)`, `::view-transition-gr
 Add a new dedicated attribute. Providing direct access to the parameter via a dedicated attribute improves developer ergonomics by avoiding manual string parsing and clearly separates the pseudo element's fundamental type from its specific instance arguments, also it is somewhat future-proof.
 
 ### 3.3 Plurality: multiple pseudo elements of the same "kind".
+[CSSWG issue](https://github.com/w3c/csswg-drafts/issues/12162)
+
 This is a significant challenge for the current `Element.pseudo(type)` which implies a single object per type. Examples are `::view-transition-old(*)` / `::view-transition-new(*)` (where `*` could match multiple captured elements with the same tag name), `::column` pseudos and each can have distinct `::scroll-marker` inside.
 
 * `Element.pseudo(type)` returns the first or a representative one.
@@ -141,6 +151,8 @@ The Core Conflict: `event.target`
 A fundamental aspect of current web platform behavior is that user interaction events (like `click`, `mouseover`, etc.) that physically occur over the area styled or occupied by a pseudo element are retargeted before dispatch. The `event.target` property of the dispatched event is set to the originating `Element`, not the pseudo element itself. Existing web content heavily relies on this behavior for event delegation and handling.
 
 ### 4.1. `addEventListener` on a Proxy/Handle.
+[CSSWG issue](https://github.com/w3c/csswg-drafts/issues/12163)
+
 Given that the `CSSPseudoElement` object acts as a persistent handle, attaching an event listener via `addEventListener` raises further questions. What does it mean to listen for an event on a handle when the actual pseudo element might not be currently rendered (e.g., due to `display: none`)?
 
 Should the listener only become active when the pseudoelement is actually rendered?
