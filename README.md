@@ -153,26 +153,20 @@ A fundamental aspect of current web platform behavior is that user interaction e
 ### 4.1. `addEventListener` on a Proxy/Handle.
 [CSSWG issue](https://github.com/w3c/csswg-drafts/issues/12163)
 
-Given that the `CSSPseudoElement` object acts as a persistent handle, attaching an event listener via `addEventListener` raises further questions. What does it mean to listen for an event on a handle when the actual pseudo element might not be currently rendered (e.g., due to `display: none`)?
+Given that the CSSPseudoElement object acts as a persistent handle, attaching an event listener via addEventListener raises further questions. 
 
-Should the listener only become active when the pseudoelement is actually rendered?
-How does this interact with the retargeting behavior? If `event.target` remains the `Element`, how does a listener on the `CSSPseudoElement` get invoked? Does it require a special dispatch phase?
+* What does it mean to listen for an event on a handle when the actual pseudo element might not be currently rendered (e.g., due to display: none)?
+* Should the listener only become active when the pseudo element is actually rendered?
+* How does this interact with the retargeting behavior?
+* If event.target remains the Element, how does a listener on the CSSPseudoElement get invoked?
+* Does it require a special dispatch phase?
 
-Proposed variants are included in the table:
+This would require some heavy discussions, as it’s already known that authors want to be able to count clicks on ::scroll-marker pseudo elements for analytics purposes.
 
-| Model                      | `event.target` Behavior (for existing events like `click`) | `addEventListener` on Pseudo? | Pros                                                                         | Cons                                                                                                  | Feasibility Notes                                                                                             |
-|----------------------------|-----------------------------------------------------------|------------------------------|------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
-| A: Status Quo              | `Element` (retargeted)                                    | No                           | Full web compatibility. Simple.                                              | No direct script interaction with pseudo events.                                                      | Current state.                                                                                                |
-| B: Full `EventTarget`      | `CSSPseudoElement`                                        | Yes                          | Direct event handling on pseudo. Conceptually clean object model.            | Major breaking change for web compatibility. Complex bubbling definition needed, esp. for non-tree pseudos. | Highly unlikely due to web compatibility constraints.                                                         |
-| C: Hybrid (Parent + Selector) | `Element` (retargeted)                                    | No (Interaction via parent)  | Avoids web compat issues. Sidesteps pseudo lifetime/eventing complexity for the use case. | Less direct object model. Requires specific API pattern (like Web Animations `pseudoElement`).           | Proven feasible for Web Animations L1. Potentially applicable to other interactions.                        |
-| D: Limited `EventTarget`   | `Element` (for existing events). `CSSPseudoElement` (for new specific events only). | Yes (for specific events)    | Maintains web compat for existing events. Allows direct handling for new use cases. | Complex dispatch logic. Bubbling complexity remains for events targeting pseudo. Potential developer confusion. | Requires careful definition of which events target what, and clear bubbling rules. Avoids the main breaking change of Model B. |
-
-This would require some heavy discussions, as it’s already known that authors want to be able to count clicks on `::scroll-marker` pseudo elements for analytics purposes.
-
-Potential solutions for `::scroll-marker`:
+Potential solutions on example of `::scroll-marker`:
 
 * No direct listening on pseudo element (Status Quo):
-    * **Description**: Do not allow `addEventListener('click',...)` directly on the `CSSPseudoElement` for `::scroll-marker`. Clicks physically hitting the marker would continue to dispatch with `event.target` set to the originating scrollable `Element`. Developers would have to attach the listener to the `Element` and use coordinate-based hit-testing within that listener to infer if the click landed on the marker area.
+    * **Description**: Do not allow `addEventListener('click',...)` directly on the `CSSPseudoElement` for `::scroll-marker`. Clicks physically hitting the marker would continue to dispatch with `event.target` set to the originating `Element`. Developers would have to attach the listener to the `Element` and use coordinate-based hit-testing within that listener to infer if the click landed on the marker area.
     * **Pros:**
         * Requires no changes to the event dispatch model.
         * Zero web compatibility risk regarding `event.target`.
@@ -192,7 +186,7 @@ Potential solutions for `::scroll-marker`:
         * Requires implementing the modified event dispatch logic (the "special phase").
         * The event model becomes slightly more complex internally, though the developer-facing API (`addEventListener` on the pseudo) is intuitive.
 * Introduce a new specific event type:
-    * **Description**: Instead of using the standard `click` event, define a new event type like `scrollMarkerClick` that only fires on the `CSSPseudoElement` handle for the `::scroll-marker`. Standard `click` events would continue to target the `Element` only.
+    * **Description**: Instead of using the standard `click` event, define a new event type like `pseudoElementClick` that only fires on the `CSSPseudoElement` handle for pseudo elements. Standard `click` events would continue to target the `Element` only.
     * **Pros:**
         * Avoids any ambiguity or modification related to the standard `click` event dispatch.
         * Clearly separates the interaction.
@@ -200,10 +194,17 @@ Potential solutions for `::scroll-marker`:
         * Introduces a new event type for a very specific interaction, potentially leading to event type proliferation.
         * Developers might intuitively try to listen for `click` first and be confused why it doesn't work directly on the pseudo-element handle without the special dispatch phase.
         * Doesn't fully resolve the general question of how other standard events (like `mouseover`) should interact with pseudo-elements if direct listeners are desired.
+* Add `event.pseudoElement` as in `KeyframeEffect` for Web Animations:
+  * **Description**: Add `pseudoElement` parameter as either `CSSPseudoElement` or `string` to `event` which will be set if the event was fired from the pseudo element. Allowing calling `addEventListener`  on `CSSPseudoElement` can even be optional here.
+  * **Pros:**
+    * Avoids web compat issues.
+    * Sidesteps pseudo lifetime/eventing complexity for the use case if `pseudoElement` is represented as `string`.
+    * Proven feasible for Web Animations.
+  * **Cons:**
+    * Adding new API. 
 
 **Recommendation:**
 
-Option 2: Allow Direct Listening with Special Dispatch Phase.
+Add `event.pseudoElement` as in KeyframeEffect for Web Animations.
 
-Justification: This option provides the best balance. It directly enables the desired developer use case (listening for clicks on the marker) with good ergonomics (`addEventListener` on the pseudo-element object). Crucially, it achieves this while adhering to the non-negotiable web compatibility requirement that `event.target` for standard events like `click` must remain the originating `Element`. While it requires implementing a modification to the event dispatch mechanism, this internal complexity seems justified to provide a usable and compatible solution. Option 1 is too cumbersome for developers, and Option 3 introduces a new event type which might be unnecessary if the dispatch modification in Option 2 can be generalized for other standard events targeting pseudo-elements.
-```
+Justification: This option provides the best balance. It directly enables the desired developer use case (listening for clicks on the scroll marker) with good ergonomics (`addEventListener` on the pseudo element object). Crucially, it achieves this while adhering to the non-negotiable web compatibility requirement that `event.target` for standard events like `click` must remain the originating `Element`.
